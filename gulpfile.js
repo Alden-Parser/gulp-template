@@ -22,7 +22,7 @@ path = {
 
 	img_from:   ['app/img/**/*.*'],
 
-}
+};
 
 
 
@@ -34,10 +34,20 @@ gulp.task('sass', function() {
 		.pipe(debug({title:'sass'}))
 		.pipe(concat('main.min.css'))
 		.pipe(autoprefixer())
+		.pipe(sourcemaps.write())
+		.pipe(gulp.dest('app/css'))
+});
+
+gulp.task('sass_uglify', function() {
+	return gulp.src(path.styles_from)
+		.pipe(sourcemaps.init())
+		.pipe(sass().on('error', sass.logError))
+		.pipe(debug({title:'sass'}))
+		.pipe(concat('main.min.css'))
+		.pipe(autoprefixer())
 		.pipe(uglifyCss({
 	      "uglyComments": true
 	    }))
-		.pipe(sourcemaps.write())
 		.pipe(gulp.dest('app/css'))
 });
 //STYLES_________________________________________
@@ -48,6 +58,13 @@ gulp.task('js', function() {
 	return gulp.src(path.js_from)
 		.pipe(debug({title:'javascript'}))
 		.pipe(concat('common.min.js'))
+		.pipe(gulp.dest('app/js'))
+});
+
+gulp.task('js_uglify', function() {
+	return gulp.src(path.js_from)
+		.pipe(debug({title:'javascript'}))
+		.pipe(concat('common.min.js'))
 		.pipe(uglifyJs())
 		.pipe(gulp.dest('app/js'))
 });
@@ -55,9 +72,9 @@ gulp.task('js', function() {
 
 
 //STYLES AND SCRIPT WATCH________________________
-gulp.task('watch', function() {
-	gulp.watch([path.styles_from,'app/sass/**.sass'])
-		.on('change', () => {setTimeout(gulp.series('sass'),500)});
+gulp.task('watch', function(){
+	gulp.watch((path.styles_from).concat('app/sass/**.sass'))
+		.on('change', () => {setTimeout(gulp.series('sass'),500)})
 
 	gulp.watch(path.js_from)
 		.on('change', gulp.series('js'));
@@ -66,12 +83,13 @@ gulp.task('watch', function() {
 
 
 //SERVER_________________________________________
-gulp.task('serve', function() {
+gulp.task('serve', function(callback) {
 	browserSync.init({
 		server:'app'
 	});
 
 	browserSync.watch('app').on('change', browserSync.reload);
+	callback();
 });
 //SERVER_________________________________________
 
@@ -96,7 +114,7 @@ gulp.task('imagemin', function() {
 //IMAGES_________________________________________
 
 //BUILD DIST_____________________________________
-gulp.task('build', gulp.series('removedist', gulp.parallel('imagemin', 'sass', 'js'), function(callback) {
+gulp.task('build', gulp.series('removedist', gulp.parallel('imagemin', 'sass_uglify', 'js_uglify'), function(callback) {
 
 	var buildFiles = gulp.src('app/*.html')
 		.pipe(gulp.dest('dist'));
@@ -109,6 +127,9 @@ gulp.task('build', gulp.series('removedist', gulp.parallel('imagemin', 'sass', '
 
 	var buildFonts = gulp.src('app/fonts/**/*')
 		.pipe(gulp.dest('dist/fonts'));
+
+	var buildImg = gulp.src('app/img')
+		.pipe(gulp.dest('dist/img'));
 
 	callback();
 }));
